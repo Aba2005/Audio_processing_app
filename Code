@@ -1,0 +1,230 @@
+classdef Audio_processing_app < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                matlab.ui.Figure
+        PlayInversedButton      matlab.ui.control.Button
+        ClearsoundButton        matlab.ui.control.Button
+        PlayeditedButton        matlab.ui.control.Button
+        DurationEditField       matlab.ui.control.NumericEditField
+        DurationEditFieldLabel  matlab.ui.control.Label
+        SpeedKnob               matlab.ui.control.Knob
+        SpeedLabel              matlab.ui.control.Label
+        AmptitudeKnob           matlab.ui.control.Knob
+        AmptitudeKnobLabel      matlab.ui.control.Label
+        PlayOriginalButton      matlab.ui.control.Button
+        RecordButton            matlab.ui.control.Button
+        UIAxes2                 matlab.ui.control.UIAxes
+        UIAxes                  matlab.ui.control.UIAxes
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Button pushed function: RecordButton
+        function RecordButtonPushed(app, event)
+            recorder = audiorecorder(44100,16,2);
+            duration = app.DurationEditField.Value;
+            msgbox("Recording started");
+            recordblocking(recorder, duration);
+            msgbox("Recording finished");
+            y = getaudiodata(recorder);
+            audiowrite('audio_file.wav', y, recorder.SampleRate)
+        end
+
+        % Button pushed function: PlayOriginalButton
+        function PlayOriginalButtonPushed(app, event)
+            [y, Fs] = audioread('audio_file.wav');
+            sound(y, Fs);
+t = (0:length(y)-1)/Fs;
+plot(app.UIAxes, t, y);
+title(app.UIAxes,'Audio samples as a function of time')
+xlabel(app.UIAxes, 'Time (s)');
+ylabel(app.UIAxes, 'Amplitude');
+Y = fft(y);
+f = linspace(-Fs/2, Fs/2, length(Y));
+f = fftshift(f);
+plot(app.UIAxes2,f, abs(Y));
+app.UIAxes2.Title.FontSize = 10;
+title(app.UIAxes2,'Transformed data as a function of frequency by Fourier transform')
+xlabel(app.UIAxes2,'Frequency (Hz)');
+ylabel(app.UIAxes2,'Magnitude');
+        end
+
+        % Button pushed function: PlayeditedButton
+        function PlayeditedButtonPushed(app, event)
+            [y,Fs] = audioread("audio_file.wav");
+            speed = app.SpeedKnob.Value;
+            magnitude = app.AmptitudeKnob.Value;
+            y = y * magnitude;
+            Fs = Fs * speed;
+            sound(y,Fs);
+            t = (0:length(y)-1)/Fs;
+            plot(app.UIAxes, t, y);
+            title(app.UIAxes,'Audio samples as a function of time')
+            xlabel(app.UIAxes, 'Time (s)');
+            ylabel(app.UIAxes, 'Amplitude');
+            Y = fft(y);
+            f = linspace(-Fs/2, Fs/2, length(Y));
+            f = fftshift(f);
+            plot(app.UIAxes2,f, abs(Y));
+            app.UIAxes2.Title.FontSize = 10;
+            title(app.UIAxes2,'Transformed data as a function of frequency by Fourier transform')
+            xlabel(app.UIAxes2,'Frequency (Hz)');
+            ylabel(app.UIAxes2,'Magnitude');
+        end
+
+        % Button pushed function: ClearsoundButton
+        function ClearsoundButtonPushed(app, event)
+            clear sound;
+        end
+
+        % Button pushed function: PlayInversedButton
+        function PlayInversedButtonPushed(app, event)
+            [x,Fs] = audioread("audio_file.wav")   ; 
+                y = flipud(x);
+                speed = app.SpeedKnob.Value;
+                magnitude = app.AmptitudeKnob.Value;
+                y = y * magnitude;
+                Fs = Fs * speed;
+                sound(y,Fs)
+                t = (0:length(y)-1)/Fs;
+                plot(app.UIAxes, t, y);
+                title(app.UIAxes,'Audio samples as a function of time')
+                xlabel(app.UIAxes, 'Time (s)');
+                ylabel(app.UIAxes, 'Amplitude');
+                Y = fft(y);
+                f = linspace(-Fs/2, Fs/2, length(Y));
+                f = fftshift(f);
+                plot(app.UIAxes2,f, abs(Y));
+                app.UIAxes2.Title.FontSize = 10;
+                title(app.UIAxes2,'Transformed data as a function of frequency by Fourier transform')
+                xlabel(app.UIAxes2,'Frequency (Hz)');
+                ylabel(app.UIAxes2,'Magnitude');
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.UIFigure);
+            title(app.UIAxes, 'Audio graph')
+            xlabel(app.UIAxes, 'X')
+            ylabel(app.UIAxes, 'Y')
+            zlabel(app.UIAxes, 'Z')
+            app.UIAxes.Position = [275 288 300 185];
+
+            % Create UIAxes2
+            app.UIAxes2 = uiaxes(app.UIFigure);
+            title(app.UIAxes2, 'Audio graph changed')
+            xlabel(app.UIAxes2, 'X')
+            ylabel(app.UIAxes2, 'Y')
+            zlabel(app.UIAxes2, 'Z')
+            app.UIAxes2.FontWeight = 'bold';
+            app.UIAxes2.Position = [275 93 300 185];
+
+            % Create RecordButton
+            app.RecordButton = uibutton(app.UIFigure, 'push');
+            app.RecordButton.ButtonPushedFcn = createCallbackFcn(app, @RecordButtonPushed, true);
+            app.RecordButton.Position = [38 425 100 23];
+            app.RecordButton.Text = 'Record';
+
+            % Create PlayOriginalButton
+            app.PlayOriginalButton = uibutton(app.UIFigure, 'push');
+            app.PlayOriginalButton.ButtonPushedFcn = createCallbackFcn(app, @PlayOriginalButtonPushed, true);
+            app.PlayOriginalButton.Position = [38 389 100 23];
+            app.PlayOriginalButton.Text = 'Play Original';
+
+            % Create AmptitudeKnobLabel
+            app.AmptitudeKnobLabel = uilabel(app.UIFigure);
+            app.AmptitudeKnobLabel.HorizontalAlignment = 'center';
+            app.AmptitudeKnobLabel.Position = [170 72 59 22];
+            app.AmptitudeKnobLabel.Text = 'Amptitude';
+
+            % Create AmptitudeKnob
+            app.AmptitudeKnob = uiknob(app.UIFigure, 'continuous');
+            app.AmptitudeKnob.Limits = [-25 25];
+            app.AmptitudeKnob.Position = [169 128 60 60];
+            app.AmptitudeKnob.Value = 1;
+
+            % Create SpeedLabel
+            app.SpeedLabel = uilabel(app.UIFigure);
+            app.SpeedLabel.HorizontalAlignment = 'center';
+            app.SpeedLabel.Position = [39 72 39 22];
+            app.SpeedLabel.Text = 'Speed';
+
+            % Create SpeedKnob
+            app.SpeedKnob = uiknob(app.UIFigure, 'continuous');
+            app.SpeedKnob.Limits = [0 2];
+            app.SpeedKnob.MajorTicks = [0 0.5 1 1.5 2];
+            app.SpeedKnob.Position = [28 128 60 60];
+            app.SpeedKnob.Value = 1;
+
+            % Create DurationEditFieldLabel
+            app.DurationEditFieldLabel = uilabel(app.UIFigure);
+            app.DurationEditFieldLabel.HorizontalAlignment = 'right';
+            app.DurationEditFieldLabel.Position = [15 331 51 22];
+            app.DurationEditFieldLabel.Text = 'Duration';
+
+            % Create DurationEditField
+            app.DurationEditField = uieditfield(app.UIFigure, 'numeric');
+            app.DurationEditField.Position = [81 331 100 22];
+            app.DurationEditField.Value = 5;
+
+            % Create PlayeditedButton
+            app.PlayeditedButton = uibutton(app.UIFigure, 'push');
+            app.PlayeditedButton.ButtonPushedFcn = createCallbackFcn(app, @PlayeditedButtonPushed, true);
+            app.PlayeditedButton.Position = [15 17 100 23];
+            app.PlayeditedButton.Text = 'Play edited';
+
+            % Create ClearsoundButton
+            app.ClearsoundButton = uibutton(app.UIFigure, 'push');
+            app.ClearsoundButton.ButtonPushedFcn = createCallbackFcn(app, @ClearsoundButtonPushed, true);
+            app.ClearsoundButton.Position = [157 389 80 23];
+            app.ClearsoundButton.Text = 'Clear sound';
+
+            % Create PlayInversedButton
+            app.PlayInversedButton = uibutton(app.UIFigure, 'push');
+            app.PlayInversedButton.ButtonPushedFcn = createCallbackFcn(app, @PlayInversedButtonPushed, true);
+            app.PlayInversedButton.Position = [137 16 100 23];
+            app.PlayInversedButton.Text = 'Play Inversed';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = Audio_processing_app
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
